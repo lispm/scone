@@ -58,17 +58,19 @@
 (declaim (ftype (function (string &key (:verbose boolean)))
 		load-kb))
 
-(defun scone (&optional (version "scone-git"))
+(defun scone (&optional (version "scone"))
   (setq *version* version)
   (setq *default-kb-pathname* 
-    (format nil "/Users/sef/scone/~A/kb/anonymous.lisp"
+    (format nil "/Lisp/github/~A/kb/anonymous.lisp"
 	    *version*))
-  (load (format nil "/Users/sef/scone/~A/engine"
-		*version*))
+  (let ((engine-file (format nil "/Lisp/github/~A/engine.lisp" *version*)))
+    (compile-file engine-file)
+    (load (compile-file-pathname engine-file)))
   ;; If we're using a Scone engine that creates a separate scone package,
   ;; get into that package.
   (when (find-package :scone)
     (in-package :scone)
+    (setf *verbose-loading* t)
     (set (intern "*DEFAULT-KB-PATHNAME*") cl-user::*default-kb-pathname*))
   (funcall (intern "LOAD-KB") "bootstrap")
   (values))

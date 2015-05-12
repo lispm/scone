@@ -137,7 +137,7 @@
    by the Scone engine.")
 
 ;;; The operations beyond this point must be as fast as possible.
-(declaim (optimize (speed 3) (space 0) (safety 0)))
+(declaim (optimize (speed 3) (space 0) (safety 2)))
 
 ;;; ========================================================================
 (subsection "Variables That Control KB Input and Loading")
@@ -200,6 +200,9 @@
   "When loading a KB file, we may find references to elements not yet
    loaded or defined.  When we do, push a triplet onto this list and try to
    create the connection later.")
+
+(defvar *external-format* :utf-8)
+
 ;;; ========================================================================
 (subsection "Variables That Control Load-Time Inference")
 
@@ -1643,7 +1646,8 @@
   ;; specified here.  If the parent is anything else, this redefinition
   ;; is an error, which will be caught in MAKE-ELEMENT.
   (let ((this-element (lookup-element iname)))
-    (when (and (eq (parent-wire this-element) *undefined-thing*)
+    (when (and this-element
+               (eq (parent-wire this-element) *undefined-thing*)
 	       (not (incompatible? this-element parent)))
       ;; The element exists, but its parent is {undefined thing}. 
       (disconnect-wire :parent this-element)
@@ -1937,7 +1941,8 @@
   ;; specified here.  If the parent is anything else, this redefinition
   ;; is an error, which will be caught in MAKE-ELEMENT.
   (let ((this-element (lookup-element iname)))
-    (when (and (eq (parent-wire this-element) *undefined-thing*)
+    (when (and this-element
+               (eq (parent-wire this-element) *undefined-thing*)
 	       (not (incompatible? this-element parent)))
       ;; The element exists, but its parent is {undefined thing}. 
       (disconnect-wire :parent this-element)
@@ -3017,7 +3022,7 @@
 ;;; predicates have been defined.
 
 ;;; This stuff doesn't have to be fast.
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 (defun print-element (e stream depth)
   "Print element E in a human-readable form."
@@ -3060,7 +3065,7 @@
 			(subseq string (+ q 1))))))))
 
 ;;; The operations beyond this point must be as fast as possible.
-(declaim (optimize (speed 3) (space 0) (safety 0)))
+(declaim (optimize (speed 3) (space 0) (safety 2)))
 
 ;;; ========================================================================
 (subsection "Adding Sets of Subtypes and Instances")
@@ -3522,7 +3527,7 @@
 ;;; ***************************************************************************
 
 ;;; These operations must be as fast as possible.
-(declaim (optimize (speed 3) (space 0) (safety 0)))
+(declaim (optimize (speed 3) (space 0) (safety 2)))
 
 ;;; ========================================================================
 (subsection "Low-Level Marker Operations"
@@ -4803,7 +4808,7 @@ some conditions.  Examine and fix if necessary.")
 (subsection "Predicates on the Is-A Hierarchy")
 
 ;;; These operations must be as fast as possible.
-(declaim (optimize (speed 3) (space 0) (safety 0)))
+(declaim (optimize (speed 3) (space 0) (safety 2)))
 
 (defun simple-is-x-a-y? (x y)
   "Predicate to determine whether type or individual X is known to be of
@@ -4853,7 +4858,7 @@ some conditions.  Examine and fix if necessary.")
 (subsection "Basic List and Show Machinery")
 
 ;;; Use normal compilation policy, where safety counts as much as speed.
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 ;;; In general, these functions take any valid specifier for element
 ;;; arguments and check the marker arguments.
@@ -5651,7 +5656,7 @@ English Names: ~20T~10:D
 ;;; ************************************************************************
 
 ;;; These operations must be as fast as possible.
-(declaim (optimize (speed 3) (space 0) (safety 0)))
+(declaim (optimize (speed 3) (space 0) (safety 2)))
 
 ;;; ========================================================================
 (subsection "Access Functions")
@@ -6029,7 +6034,7 @@ English Names: ~20T~10:D
 
 ;;; Use normal compilation policy, where safety counts as much as speed.
 
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 (defun print-element-iname (e stream depth)
   "The ELEMENT-INAME structure prints in the original curly-brace
@@ -6348,7 +6353,7 @@ English Names: ~20T~10:D
 (subsection "Basic Machinery for English (External) Names")
 
 ;;; Use normal compilation policy, where safety counts as much as speed.
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 ;;; Scone does not (yet) attempt to provide a serious natural-language
 ;;; interface.  We assume that some external package does the parsing of NL
@@ -6721,7 +6726,7 @@ English Names: ~20T~10:D
 (subsection "Loading KB Files")
 
 ;;; Use normal compilation policy, where safety counts as much as speed.
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 (defun load-kb (filename &key (verbose nil))
   "Read in a knowledge base in text format.  This is basically just a
@@ -6735,7 +6740,8 @@ English Names: ~20T~10:D
 			   *default-kb-pathname*))
 	 (*load-kb-stream* (open pathname
 				 :direction :input
-				 :external-format :utf8))
+                                 :element-type 'simple-char
+				 :external-format *external-format*))
 	 ;; When reading a KB file, set this variable.
 	 (*loading-kb-file* t)
 	 ;; The file may set *DEFER-UNKNOWN-CONNECTIONS*.  Make sure that
@@ -6815,7 +6821,8 @@ English Names: ~20T~10:D
     (with-open-file (dump pathname
 			  :direction :output
 			  :if-exists :supersede
-			  :external-format :utf8)
+                          :element-type 'simple-char
+			  :external-format *external-format*)
       (format dump "~&;;; Scone Checkpoint File ~A~%" pathname)
       (format dump ";;; Dumped on ~A.~2%" (current-time-string))
       (format dump "(setq *defer-unknown-connections* t)~%")
@@ -6840,7 +6847,8 @@ English Names: ~20T~10:D
     (with-open-file (dump pathname
 			  :direction :output
 			  :if-exists :supersede
-			  :external-format :utf8)
+                          :element-type 'simple-char
+			  :external-format *external-format*)
       (format dump ";;; Scone New-Element Checkpoint File ~A~%" pathname)
       (format dump ";;; Dumped on ~A.~2%" (current-time-string))
       (format dump "(setq *defer-unknown-connections* t)~%")
@@ -6953,7 +6961,8 @@ English Names: ~20T~10:D
 	      (open pathname
 		    :direction :output
 		    :if-exists :supersede
-		    :external-format :utf8))
+                    :element-type 'simple-char
+		    :external-format *external-format*))
 	(kb-log "~&;;; Scone KB Logging File ~S~%" pathname)
 	(kb-log "~&;;; Opened on ~S.~2%" (current-time-string))
 	;; Note what files are loaded, so that when the log file is read
@@ -6982,7 +6991,7 @@ English Names: ~20T~10:D
 ;;; ***************************************************************************
 
 ;;; Use normal compilation policy, where safety counts as much as speed.
-(declaim (optimize (speed 1) (space 1) (safety 1)))
+(declaim (optimize (speed 1) (space 1) (safety 2)))
 
 ;;; Removing an element can leave things in an odd state, but we still need
 ;;; some mechanism to do this.
